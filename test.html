@@ -1,42 +1,40 @@
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
-      google.charts.load('current', {
-        'packages':['geochart'],
-        // Note: you will need to get a mapsApiKey for your project.
-        // See: https://developers.google.com/chart/interactive/docs/basic_load_libs#load-settings
-        'mapsApiKey': 'AIzaSyAyX7fPjGOcWCGUupWHHrnQyol4-0zB94E'
-      });
-      google.charts.setOnLoadCallback(drawRegionsMap);
+   <head>
+      <meta charset="UTF-8">
+      <title>菜鸟教程(runoob.com)</title> 
+      <script type="text/javascript">
+		
+         var db = openDatabase('mydb', '1.0', 'Test DB', 2 * 1024 * 1024);
+         var msg;
+			
+         db.transaction(function (tx) {
+            tx.executeSql('CREATE TABLE IF NOT EXISTS LOGS (id unique, log)');
+            tx.executeSql('INSERT INTO LOGS (id, log) VALUES (1, "菜鸟教程")');
+            tx.executeSql('INSERT INTO LOGS (id, log) VALUES (2, "www.runoob.com")');
+            msg = '<p>数据表已创建，且插入了两条数据。</p>';
+            document.querySelector('#status').innerHTML =  msg;
+         });
 
-      function drawRegionsMap() {
-        var data = google.visualization.arrayToDataTable([
-          ['Country', 'Popularity'],
-          ['广东省',233],
-        ]);
-
-        var options = {
-            region: 'CN',  
-            resolution: 'provinces',
-            enableRegionInteractivity: true,
-        };
-
-        var chart = new google.visualization.GeoChart(document.getElementById('regions_div'));
-
-        chart.draw(data, options);
-
-        console.log('233')
-        
-    google.visualization.events.addListener(chart, 'regionClick', regionClick)
-    function regionClick(region) {
-      console.log('233')
-    }
-    }
-    </script>
-  </head>
-  <body>
-    <div id="regions_div" style="width: 900px; height: 500px;"></div>
-  </body>
+         db.transaction(function (tx) {
+            tx.executeSql('SELECT * FROM LOGS', [], function (tx, results) {
+               var len = results.rows.length, i;
+               msg = "<p>查询记录条数: " + len + "</p>";
+               document.querySelector('#status').innerHTML +=  msg;
+					
+               for (i = 0; i < len; i++){
+                  msg = "<p><b>" + results.rows.item(i).log + "</b></p>";
+                  document.querySelector('#status').innerHTML +=  msg;
+               }
+            }, null);
+         });
+			
+      </script>
+		
+   </head>
+	
+   <body>
+      <div id="status" name="status">状态信息</div>
+   </body>
+	
 </html>
-
