@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>全国空气质量</title>
+    <style>
+        html,
+        body,
+        #container {
+            margin: 0;
+            padding: 0;
+            width: 90%;
+            height: 90%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container" class="container">
+    </div>
+    <script src="https://a.amap.com/Loca/static/dist/jquery.min.js"></script>
+    <script src="https://webapi.amap.com/maps?v=1.4.15&key=a1f20e56788bc5e9930326306872d63e"></script>
+    <script src="https://webapi.amap.com/loca?v=1.3.2&key=a1f20e56788bc5e9930326306872d63e"></script>
+    <script>
+            var data;
+            var httpRequest=new XMLHttpRequest();
+            httpRequest.onreadystatechange = function () {
+                if (httpRequest.readyState == 4 && httpRequest.status == 200) {
+                    console.log(httpRequest.responseText)
+                    //var json = JSON.parse(httpRequest.responseText);//获取到json字符串，还需解析
+                    //data=json
+                    data=httpRequest.responseText;
+                    console.log(data)
+                
+            
+            
+            console.log(data)
+            var map = new AMap.Map('container', {
+                mapStyle: 'amap://styles/db9efe6a1745ac24b7269b862f359536',
+                viewMode: '2D',
+                pitch: 0,
+                features: ['bg', 'road'],
+                zoom: 3.8,
+                center: [107.4976, 32.1697]
+            });
+
+
+            var layer = new Loca.DistrictLayer({
+                map: map,
+                // fitView: true
+            });
+
+            layer.setData(data, {
+                type: 'csv',
+                lnglat: 'lon',
+                value: 'IAQI'
+            });
+
+            layer.setOptions({
+                mode: 'mean',
+                style: {
+                    color: ['#0c2c84', '#225ea8', '#225ea8', '#41b6c4', '#7fcdbb', '#c7e9b4', '#ffffcc'],
+                    height: [0, 300000],
+                    opacity: 0.86
+                }
+            });
+
+            layer.render();}};
+            httpRequest.open("get","2014_1_4.csv");
+            httpRequest.send();
+    </script>
+</body>
+
+</html>
