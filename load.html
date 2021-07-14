@@ -19,9 +19,12 @@
 </head>
 
 <body>
+<<<<<<< HEAD
     <input id="YearInput" value="2013"  onchange="ListenDate()">
     <input id="MonthInput" value="1" onchange="ListenDate()">
     <input id="DayInput" value="1"  onchange="ListenDate()">
+=======
+>>>>>>> 5852782f8bc599d76d5ac776e79699ee072d22d2
     <div id="container" class="container">
     </div>
     <script src="https://a.amap.com/Loca/static/dist/jquery.min.js"></script>
@@ -30,6 +33,20 @@
     <script>
             var data;
             var httpRequest=new XMLHttpRequest();
+<<<<<<< HEAD
+=======
+            httpRequest.onreadystatechange = function () {
+                if (httpRequest.readyState == 4 && httpRequest.status == 200) {
+                    console.log(httpRequest.responseText)
+                    //var json = JSON.parse(httpRequest.responseText);//获取到json字符串，还需解析
+                    //data=json
+                    data=httpRequest.responseText;
+                    console.log(data)
+                
+            
+            
+            console.log(data)
+>>>>>>> 5852782f8bc599d76d5ac776e79699ee072d22d2
             var map = new AMap.Map('container', {
                 mapStyle: 'amap://styles/db9efe6a1745ac24b7269b862f359536',
                 viewMode: '2D',
@@ -44,6 +61,16 @@
                 map: map,
                 // fitView: true
             });
+<<<<<<< HEAD
+=======
+
+            layer.setData(data, {
+                type: 'csv',
+                lnglat: 'lon',
+                value: 'IAQI'
+            });
+
+>>>>>>> 5852782f8bc599d76d5ac776e79699ee072d22d2
             layer.setOptions({
                 mode: 'mean',
                 style: {
@@ -52,6 +79,7 @@
                     opacity: 0.86
                 }
             });
+<<<<<<< HEAD
             function ListenDate(){
                 console.log(233)
                 //layer.setMap(null)
@@ -77,6 +105,12 @@
                 httpRequest.open("get","./res/"+year+"_"+month+"_"+day+".csv");
                 httpRequest.send();
             }
+=======
+
+            layer.render();}};
+            httpRequest.open("get","2014_1_4.csv");
+            httpRequest.send();
+>>>>>>> 5852782f8bc599d76d5ac776e79699ee072d22d2
     </script>
 </body>
 
