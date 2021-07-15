@@ -22,19 +22,19 @@
             width: 47.5vw;
             height: 77.5vh;
         }
-        #Input{
+        #Detail{
             position: absolute;
             top: 20vh;
             left: 1vw;
             width: 50vw;
-            height: 10vh;
+            height: 30vh;
         }
-        #Charts{
+        #Charts_Div{
             position: absolute;
             top: 50vh;
             left: 0vw;
             width: 50vw;
-            height: 40vh;
+            height: 47.5vh;
         }
         .text{
             width: 10%;
@@ -49,8 +49,8 @@
 
 <body style="background-color:rgb(231, 233, 240);" onload="init()">
      
-    <div id="Input">
-        
+    <div id="Detail">
+        <div style="width: 15vw; height: 30vh;" id="Rader"></div>
     </div>
     <div id="container" class="container">
         <div style="position:absolute; z-index:999; top:0;">
@@ -61,13 +61,17 @@
             <input id="up-btn" type="button" class="button" value="返回" />
         </div>
     </div>
-    <div id="Charts"></div>
+    <div id="Charts_Div">
+        <div id="Charts" style="height: 35vh;"></div>
+        <div id="Bars" style="height: 12.5vh;"></div>
+    </div>
     <script src="https://a.amap.com/Loca/static/dist/jquery.min.js"></script>
     <script src="https://webapi.amap.com/maps?v=1.4.15&key=a1f20e56788bc5e9930326306872d63e"></script>
     <script src="https://webapi.amap.com/loca?v=1.3.2&key=a1f20e56788bc5e9930326306872d63e"></script>
     <script src="https://a.amap.com/Loca/static/mock/districts.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script>
+            var province_now='北京市';
             function init(){
                 draw_charts('北京市');
                 ListenDate();
@@ -82,35 +86,6 @@
                 zoom: 3.8,
                 center: [107.4976, 32.1697]
             });
-
-            // var layer_temp = new Loca.PointLayer({
-            //     eventSupport: true,
-            //     map: map,
-                
-            // });
-
-            // layer_temp.setData(districts, {
-            //     // 指定经纬度所在字段
-            //     lnglat: 'center'
-            // });
-
-            // layer_temp.setOptions({
-            //     style: {
-            //         // 圆形半径，单位像素
-            //         radius: 5,
-            //         // 填充颜色
-            //         color: '#07E8E4',
-            //         // 描边颜色
-            //         borderColor: '#5DFBF9',
-            //         // 描边宽度，单位像素
-            //         borderWidth: 0,
-            //         // 透明度 [0-1]
-            //         opacity: 0.9,
-            //     }
-            // });
-            // layer_temp.setzIndex(999);
-            // layer_temp.render();
-
             
 
             var layer = new Loca.DistrictLayer({
@@ -136,7 +111,6 @@
                 closeWhenClickMap: true
             });
             layer.on('mouseover', function(event) {
-                console.log('Raw data: ', event); // 触发元素对应的原始数据
                 var pos=event.feature.subFeature.properties.center;
                 var lnglat = new AMap.LngLat(pos[0], pos[1]);
                 infoWin.setContent(event.feature.subFeature.properties.name);
@@ -144,8 +118,15 @@
                 console.log(pos);
             });
             layer.on('click', function(event) {
+                var day=document.getElementById("DayInput").value;
+                var month=document.getElementById("MonthInput").value;
+                var year=document.getElementById("YearInput").value;
                 layer.goto(event.feature.subFeature.properties.adcode);
-                draw_charts(event.feature.subFeature.properties.name);
+                var province=event.feature.subFeature.properties.name;
+                province_now=province;
+                draw_charts(province);
+                Draw_Rader(province,year,month,day);
+                Draw_Bars(province);
             });
             // httpRequest.onreadystatechange = function () {
             //     if (httpRequest.readyState == 4 && httpRequest.status == 200) {
@@ -178,6 +159,7 @@
                 var day=document.getElementById("DayInput").value;
                 var month=document.getElementById("MonthInput").value;
                 var year=document.getElementById("YearInput").value;
+                Draw_Rader(province_now,year,month,day);
                 $.get("https://raw.githubusercontent.com/35point5/Visualization/main/res/"+year+"_"+month+"_"+day+".csv",(data)=>{
                     layer.setData(data, {
                         type: 'csv',
@@ -192,16 +174,14 @@
             });
     </script>
     <script>
-        var dom = document.getElementById("Charts");
-        var myChart = echarts.init(dom);
+        var dom_charts = document.getElementById("Charts");
+        var myChart = echarts.init(dom_charts);
         var app = {};
 
         var option;
 
         function draw_charts(province){
-            console.log(province);
             $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
-                console.log(status)
                 if (status!="success") return;
                 var data=JSON.parse(datastr);
                 console.log(data);
@@ -363,6 +343,268 @@
             if (option && typeof option === 'object') {
                 myChart.setOption(option);
             }
+        }
+    </script>
+    <script>
+        var dom_bars = document.getElementById("Bars");
+        var Bars = echarts.init(dom_bars);
+        var app = {};
+
+        var option_Bars;
+        function Draw_Bars(province){
+            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
+                p=JSON.parse(datastr);
+                var data=new Array();
+                for(var i=0;i<6;++i) data[i]=new Array();
+                var len=0;
+                var last='01';
+                for(var i in p){
+                    str=p[i+'']['date'].split('-');
+                    for(var j=0;j<6;++j) data[j][len]=0;
+                    if (last!=str[1]){
+                        ++len; last=str[1];
+                    }
+                }
+                console.log(len);
+                len=0;
+                last='01';
+                var X=new Array();
+                X.push('2013-01');
+                for(var i in p){
+                    str=p[i+'']['date'].split('-');
+                    if (p[i+'']['IAQI']<=50) ++data[0][len];
+                    else if (p[i+'']['IAQI']<=100) ++data[1][len];
+                    else if (p[i+'']['IAQI']<=150) ++data[2][len];
+                    else if (p[i+'']['IAQI']<=200) ++data[3][len];
+                    else if (p[i+'']['IAQI']<=300) ++data[4][len];
+                    else ++data[5][len];
+                    if (last!=str[1]){
+                        X.push(str[0]+'-'+str[1]);
+                        ++len; last=str[1];
+                    }
+                }
+                console.log('data:');
+                console.log(data);
+                console.log(len);
+                option_Bars = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {            // 坐标轴指示器，坐标轴触发有效
+                            type: 'shadow'        // 默认为直线，可选为：'line' | 'shadow'
+                        }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '3%',
+                        bottom: '0',
+                        top:'0',
+                        containLabel: false
+                    },
+                    xAxis: [
+                        {
+                            type: 'category',
+                            data: X
+                        }
+                    ],
+                    yAxis: [
+                        {
+                            type: 'value',
+                            show: false
+                        }
+                    ],
+                    series: [
+                        {
+                            name: '优',
+                            type: 'bar',
+                            stack: 's',
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: data[0],
+                            itemStyle:{
+                                normal:{
+                                    color:'#93CE07'
+                                }
+                            },
+                        },
+                        {
+                            name: '良',
+                            type: 'bar',
+                            stack: 's',
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: data[1],
+                            itemStyle:{
+                                normal:{
+                                    color:'#FBDB0F'
+                                }
+                            },
+                        },
+                        {
+                            name: '轻度污染',
+                            type: 'bar',
+                            stack: 's',
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: data[2],
+                            itemStyle:{
+                                normal:{
+                                    color:'#FC7D02'
+                                }
+                            },
+                        }
+                        ,
+                        {
+                            name: '中度污染',
+                            type: 'bar',
+                            stack: 's',
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: data[3],
+                            itemStyle:{
+                                normal:{
+                                    color:'#FD0100'
+                                }
+                            },
+                        }
+                        ,
+                        {
+                            name: '重度污染',
+                            type: 'bar',
+                            stack: 's',
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: data[4],
+                            itemStyle:{
+                                normal:{
+                                    color:'#AA069F'
+                                }
+                            },
+                        }
+                        ,
+                        {
+                            name: '严重污染',
+                            type: 'bar',
+                            stack: 's',
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: data[5],
+                            itemStyle:{
+                                normal:{
+                                    color:'#AC3B2A'
+                                }
+                            },
+                        }
+                    ]
+                };
+
+                if (option_Bars && typeof option_Bars === 'object') {
+                    Bars.setOption(option_Bars);
+                }
+            })
+        }
+    </script>
+    <script>
+        function cl(val){
+            if (val<10) return '0'+val;
+            else return val+'';
+        }
+        function Draw_Rader(province,year,month,day){
+            var dom = document.getElementById("Rader");
+            var myChart = echarts.init(dom);
+            var app = {};
+
+            var option;
+
+            var lineStyle = {
+                normal: {
+                    width: 1,
+                    opacity: 1
+                }
+            };
+            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status){
+                if (status!='success') return;
+                var p=JSON.parse(datastr);
+                var R_data=new Array();
+                for(var i=0;i<6;++i) R_data[i]=new Array();
+                for(var i in p){
+                    if (p[i+'']['date']==year+'-'+cl(month)+'-'+cl(day)){
+                    R_data[0][0]=p[i+'']['IAQI_O3'];
+                    R_data[0][1]=p[i+'']['IAQI_PM25'];
+                    R_data[0][2]=p[i+'']['IAQI_PM10'];
+                    R_data[0][3]=p[i+'']['IAQI_CO'];
+                    R_data[0][4]=p[i+'']['IAQI_NO2'];
+                    R_data[0][5]=p[i+'']['IAQI_SO2'];
+                }} 
+
+                option = {
+                    //backgroundColor: '#161627',
+                    title: {
+                        text: '',
+                        left: 'center',
+                        textStyle: {
+                            color: '#eee'
+                        }
+                    },
+                    radar: {
+                        indicator: [
+                            {name: 'O3', max: 400},
+                            {name: 'PM2.5', max: 400},
+                            {name: 'PM10', max: 400},
+                            {name: 'CO', max: 400},
+                            {name: 'NO2', max: 400},
+                            {name: 'SO2', max: 400}
+                        ],
+                        shape: 'polygon',
+                        splitNumber: 5,
+                        name: {
+                            textStyle: {
+                                color: '#996600',
+                                fontSize: 14,
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: [
+                                    'rgba(238, 197, 102, 0.1)', 'rgba(238, 197, 102, 0.2)',
+                                    'rgba(238, 197, 102, 0.4)', 'rgba(238, 197, 102, 0.6)',
+                                    'rgba(238, 197, 102, 0.8)', 'rgba(238, 197, 102, 1)'
+                                ].reverse()
+                            }
+                        },
+                        splitArea: {
+                            show: false
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: 'rgba(238, 197, 102, 0.5)'
+                            }
+                        }
+                    },
+                    series:{
+                            name: '',
+                            type: 'radar',
+                            lineStyle: lineStyle,
+                            data: R_data,
+                            symbol: 'none',
+                            itemStyle: {
+                                color: '#F9713C'
+                            },
+                            areaStyle: {
+                                opacity: 0.1
+                            }
+                        }
+                };
+
+                if (option && typeof option === 'object') {
+                    myChart.setOption(option);
+                }
+            })
         }
     </script>
 </body>
