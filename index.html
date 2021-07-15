@@ -8,37 +8,59 @@
     <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
     <title>全国空气质量</title>
     <style>
+        #title{
+            position: absolute;
+            top:0vh;
+            left:0vw;
+            width: 100vw;
+            height: 20vh;
+        }
         #container {
             position: absolute;
-            top: 0vh;
+            top: 20vh;
             left: 50vw;
-            width: 50vw;
-            height: 50vh;
+            width: 47.5vw;
+            height: 77.5vh;
         }
         #Input{
             position: absolute;
-            top: 0vh;
-            left: 0vw;
+            top: 20vh;
+            left: 1vw;
             width: 50vw;
-            height: 50vh;
+            height: 10vh;
         }
         #Charts{
             position: absolute;
             top: 50vh;
             left: 0vw;
             width: 50vw;
-            height: 50vh;
+            height: 40vh;
+        }
+        .text{
+            width: 10%;
         }
     </style>
+    <div id="title">
+        <h1 style="text-align: center;">全国大气污染可视化</h1> <!-- 标题 -->
+        <hr>
+        <h3 style="text-align: right;">——基于2013年至2016年大气污染数据</h3>   
+    </div> 
 </head>
 
-<body>
+<body style="background-color:rgb(231, 233, 240);" onload="init()">
+     
     <div id="Input">
-    <input id="YearInput" value="2013"  onchange="ListenDate()">
-    <input id="MonthInput" value="1" onchange="ListenDate()">
-    <input id="DayInput" value="1"  onchange="ListenDate()">
+        
     </div>
-    <div id="container" class="container"></div>
+    <div id="container" class="container">
+        <div style="position:absolute; z-index:999; top:0;">
+            <p style="color: rgb(11, 18, 119);" title="I'm a tooltip">请依次输入年、月、日:</p> 
+            <input id="YearInput" value="2013"  onchange="ListenDate()" class="text">
+            <input id="MonthInput" value="1" onchange="ListenDate()" class="text">
+            <input id="DayInput" value="1"  onchange="ListenDate()" class="text">
+            <input id="up-btn" type="button" class="button" value="返回" />
+        </div>
+    </div>
     <div id="Charts"></div>
     <script src="https://a.amap.com/Loca/static/dist/jquery.min.js"></script>
     <script src="https://webapi.amap.com/maps?v=1.4.15&key=a1f20e56788bc5e9930326306872d63e"></script>
@@ -46,7 +68,10 @@
     <script src="https://a.amap.com/Loca/static/mock/districts.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script>
-        
+            function init(){
+                draw_charts('北京市');
+                ListenDate();
+            }
             var data;
             var httpRequest=new XMLHttpRequest();
             var map = new AMap.Map('container', {
@@ -58,45 +83,44 @@
                 center: [107.4976, 32.1697]
             });
 
-            var layer_temp = new Loca.PointLayer({
-                eventSupport: true,
-                map: map,
+            // var layer_temp = new Loca.PointLayer({
+            //     eventSupport: true,
+            //     map: map,
                 
-            });
+            // });
 
-            layer_temp.setData(districts, {
-                // 指定经纬度所在字段
-                lnglat: 'center'
-            });
+            // layer_temp.setData(districts, {
+            //     // 指定经纬度所在字段
+            //     lnglat: 'center'
+            // });
 
-            layer_temp.setOptions({
-                style: {
-                    // 圆形半径，单位像素
-                    radius: 5,
-                    // 填充颜色
-                    color: '#07E8E4',
-                    // 描边颜色
-                    borderColor: '#5DFBF9',
-                    // 描边宽度，单位像素
-                    borderWidth: 1,
-                    // 透明度 [0-1]
-                    opacity: 0.9,
-                }
-            });
-
-            layer_temp.render();
+            // layer_temp.setOptions({
+            //     style: {
+            //         // 圆形半径，单位像素
+            //         radius: 5,
+            //         // 填充颜色
+            //         color: '#07E8E4',
+            //         // 描边颜色
+            //         borderColor: '#5DFBF9',
+            //         // 描边宽度，单位像素
+            //         borderWidth: 0,
+            //         // 透明度 [0-1]
+            //         opacity: 0.9,
+            //     }
+            // });
+            // layer_temp.setzIndex(999);
+            // layer_temp.render();
 
             
 
             var layer = new Loca.DistrictLayer({
                 eventSupport: true,
                 map: map,
-                // fitView: true
+                fitView: true,
+                drillDown: false,
             });
-            layer_temp.on('click', function(event) {
-                console.log('Raw data: ', event.rawData) // 触发元素对应的原始数据
-                draw_charts(event.rawData['name'])
-            });
+            
+            
             layer.setOptions({
                 mode: 'mean',
                 style: {
@@ -104,6 +128,24 @@
                     height: [0, 300000],
                     opacity: 0.86
                 }
+            });
+            
+            var infoWin;
+
+            infoWin = new AMap.InfoWindow({
+                closeWhenClickMap: true
+            });
+            layer.on('mouseover', function(event) {
+                console.log('Raw data: ', event); // 触发元素对应的原始数据
+                var pos=event.feature.subFeature.properties.center;
+                var lnglat = new AMap.LngLat(pos[0], pos[1]);
+                infoWin.setContent(event.feature.subFeature.properties.name);
+                infoWin.open(map, lnglat);
+                console.log(pos);
+            });
+            layer.on('click', function(event) {
+                layer.goto(event.feature.subFeature.properties.adcode);
+                draw_charts(event.feature.subFeature.properties.name);
             });
             // httpRequest.onreadystatechange = function () {
             //     if (httpRequest.readyState == 4 && httpRequest.status == 200) {
@@ -145,6 +187,9 @@
                     layer.render();
                 })
             }
+            $('#up-btn').click(function () {
+                layer.goto(-1);
+            });
     </script>
     <script>
         var dom = document.getElementById("Charts");
@@ -155,7 +200,9 @@
 
         function draw_charts(province){
             console.log(province);
-            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr) {
+            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
+                console.log(status)
+                if (status!="success") return;
                 var data=JSON.parse(datastr);
                 console.log(data);
                 console.log(data["0"]["date"]);
