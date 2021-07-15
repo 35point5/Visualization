@@ -72,10 +72,6 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script>
             var province_now='北京市';
-            function init(){
-                draw_charts('北京市');
-                ListenDate();
-            }
             var data;
             var httpRequest=new XMLHttpRequest();
             var map = new AMap.Map('container', {
@@ -128,33 +124,6 @@
                 Draw_Rader(province,year,month,day);
                 Draw_Bars(province);
             });
-            // httpRequest.onreadystatechange = function () {
-            //     if (httpRequest.readyState == 4 && httpRequest.status == 200) {
-            //         //console.log(httpRequest.responseText)
-            //         //var json = JSON.parse(httpRequest.responseText);//获取到json字符串，还需解析
-            //         //data=json
-            //         data=httpRequest.responseText;
-            //         //console.log(data)
-                
-            //         layer.setData(data, {
-            //             type: 'csv',
-            //             lnglat: 'lon',
-            //             value: 'IAQI'
-            //         });
-            //         layer.render();
-            //     }
-            // };
-            // function ListenDate(){
-            //     console.log(233)
-            //     //layer.setMap(null)
-                
-            //     var day=document.getElementById("DayInput").value;
-            //     var month=document.getElementById("MonthInput").value;
-            //     var year=document.getElementById("YearInput").value;
-            //     //httpRequest.open("get","./res/"+year+"_"+month+"_"+day+".csv");
-            //     httpRequest.open("get","https://raw.githubusercontent.com/35point5/Visualization/main/res/2014_3_4.csv");
-            //     httpRequest.send();
-            // }
             function ListenDate(){
                 var day=document.getElementById("DayInput").value;
                 var month=document.getElementById("MonthInput").value;
@@ -606,6 +575,15 @@
                 }
             })
         }
+    </script>
+    <script>
+        function init(){
+            draw_charts(province_now);
+            ListenDate();
+            console.log('init');
+            Draw_Bars(province_now);
+        }
+        init();
     </script>
 </body>
 
