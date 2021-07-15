@@ -286,7 +286,7 @@
                         name: 'IAQI_SO2',
                         type: 'line',
                         data: DataSO2,
-                        symbol: 'triangle'
+                        symbol: 'triangle',
                     },
                     {
                         name: 'IAQI_NO2',
@@ -510,7 +510,8 @@
                     R_data[0][4]=p[i+'']['IAQI_NO2'];
                     R_data[0][5]=p[i+'']['IAQI_SO2'];
                 }} 
-
+                var ma=0;
+                for(var i=0;i<6;++i) ma=Math.max(ma,R_data[0][i]);
                 option = {
                     //backgroundColor: '#161627',
                     title: {
@@ -522,12 +523,12 @@
                     },
                     radar: {
                         indicator: [
-                            {name: 'O3', max: 400},
-                            {name: 'PM2.5', max: 400},
-                            {name: 'PM10', max: 400},
-                            {name: 'CO', max: 400},
-                            {name: 'NO2', max: 400},
-                            {name: 'SO2', max: 400}
+                            {name: 'O3', max: ma},
+                            {name: 'PM2.5', max: ma},
+                            {name: 'PM10', max: ma},
+                            {name: 'CO', max: ma},
+                            {name: 'NO2', max: ma},
+                            {name: 'SO2', max: ma}
                         ],
                         shape: 'polygon',
                         splitNumber: 5,
