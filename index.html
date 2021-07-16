@@ -74,6 +74,8 @@
     <script src="https://a.amap.com/Loca/static/mock/districts.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script>
+            var path='https://raw.githubusercontent.com/35point5/Visualization/main/'
+            //var path='https://gitee.com/Mogician666/Visualization/raw/main/'
             var data_now;
             var province_now;
             var data;
@@ -124,7 +126,7 @@
                 province_now=province;
                 var obj=document.getElementById('tag');
                 obj.innerHTML='当前选择：'+province_now;
-                $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
+                $.get(path+'date/'+province+'.json', function (datastr,status) {
                     if (status!="success") return;
                     data_now=JSON.parse(datastr);
                     draw_charts(province,data_now);
@@ -142,7 +144,7 @@
                 console.log('Rader');
                 DrawTemp(province_now,year,month,day,data_now);
                 DrawPress(province_now,year,month,day,data_now);
-                $.get("https://raw.githubusercontent.com/35point5/Visualization/main/res/"+year+"_"+month+"_"+day+".csv",(data)=>{
+                $.get(path+"res/"+year+"_"+month+"_"+day+".csv",(data)=>{
                     layer.setData(data, {
                         type: 'csv',
                         lnglat: 'lon',
@@ -152,7 +154,7 @@
                 })
             }
             function get_data(province){
-                $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
+                $.get(path+'date/'+province+'.json', function (datastr,status) {
                     if (status!="success") return;
                     return JSON.parse(datastr);
                 });
@@ -868,7 +870,7 @@
         function init(){
             data_now=get_data('北京市');
             province_now='北京市';
-            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province_now+'.json', function (datastr,status) {
+            $.get(path+'date/'+province_now+'.json', function (datastr,status) {
                 if (status!="success") return;
                 data_now=JSON.parse(datastr);
                 draw_charts(province_now,data_now);
