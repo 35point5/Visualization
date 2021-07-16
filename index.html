@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
-    <title>全国空气质量</title>
+    <title>全国大气污染可视化系统</title>
     <style>
         #title{
             position: absolute;
@@ -37,13 +37,14 @@
             height: 47.5vh;
         }
         .text{
-            width: 10%;
+            width: 20%;
+            opacity: 1;
         }
     </style>
     <div id="title">
-        <h1 style="text-align: center;">全国大气污染可视化</h1> <!-- 标题 -->
+        <h1 style="text-align: center;">全国大气污染可视化系统</h1> <!-- 标题 -->
         <hr>
-        <h3 style="text-align: right;">——基于2013年至2016年大气污染数据</h3>   
+        <h3 style="position: relative; left: 2%;" id="tag">当前选择：北京市</h3>   
     </div> 
 </head>
 
@@ -51,9 +52,11 @@
      
     <div id="Detail">
         <div style="width: 15vw; height: 30vh;" id="Rader"></div>
+        <div style="position: absolute; left: 15.7vw; width: 15vw; top: 0vh; height: 30vh;" id="Temperature"></div>
+        <div style="position: absolute; left: 32vw; width: 15vw; top: 0vh; height: 30vh;" id="Press"></div>
     </div>
     <div id="container" class="container">
-        <div style="position:absolute; z-index:999; top:0;">
+        <div style="position:absolute; z-index:999; top:0; background-color: white; width: 12vw; opacity: 0.8;">
             <p style="color: rgb(11, 18, 119);" title="I'm a tooltip">请依次输入年、月、日:</p> 
             <input id="YearInput" value="2013"  onchange="ListenDate()" class="text">
             <input id="MonthInput" value="1" onchange="ListenDate()" class="text">
@@ -71,9 +74,9 @@
     <script src="https://a.amap.com/Loca/static/mock/districts.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <script>
-            var province_now='北京市';
+            var data_now;
+            var province_now;
             var data;
-            var httpRequest=new XMLHttpRequest();
             var map = new AMap.Map('container', {
                 //mapStyle: 'amap://styles/db9efe6a1745ac24b7269b862f359536',
                 viewMode: '2D',
@@ -111,7 +114,6 @@
                 var lnglat = new AMap.LngLat(pos[0], pos[1]);
                 infoWin.setContent(event.feature.subFeature.properties.name);
                 infoWin.open(map, lnglat);
-                console.log(pos);
             });
             layer.on('click', function(event) {
                 var day=document.getElementById("DayInput").value;
@@ -120,15 +122,26 @@
                 layer.goto(event.feature.subFeature.properties.adcode);
                 var province=event.feature.subFeature.properties.name;
                 province_now=province;
-                draw_charts(province);
-                Draw_Rader(province,year,month,day);
-                Draw_Bars(province);
+                var obj=document.getElementById('tag');
+                obj.innerHTML='当前选择：'+province_now;
+                $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
+                    if (status!="success") return;
+                    data_now=JSON.parse(datastr);
+                    draw_charts(province,data_now);
+                    Draw_Rader(province,year,month,day,data_now);
+                    Draw_Bars(province,data_now);
+                    DrawTemp(province_now,year,month,day,data_now);
+                    DrawPress(province_now,year,month,day,data_now);
+                });
             });
             function ListenDate(){
                 var day=document.getElementById("DayInput").value;
                 var month=document.getElementById("MonthInput").value;
                 var year=document.getElementById("YearInput").value;
-                Draw_Rader(province_now,year,month,day);
+                Draw_Rader(province_now,year,month,day,data_now);
+                console.log('Rader');
+                DrawTemp(province_now,year,month,day,data_now);
+                DrawPress(province_now,year,month,day,data_now);
                 $.get("https://raw.githubusercontent.com/35point5/Visualization/main/res/"+year+"_"+month+"_"+day+".csv",(data)=>{
                     layer.setData(data, {
                         type: 'csv',
@@ -138,179 +151,179 @@
                     layer.render();
                 })
             }
+            function get_data(province){
+                $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
+                    if (status!="success") return;
+                    return JSON.parse(datastr);
+                });
+            }
             $('#up-btn').click(function () {
                 layer.goto(-1);
             });
     </script>
     <script>
         var dom_charts = document.getElementById("Charts");
-        var myChart = echarts.init(dom_charts);
+        var Charts = echarts.init(dom_charts);
         var app = {};
 
         var option;
 
-        function draw_charts(province){
-            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
-                if (status!="success") return;
-                var data=JSON.parse(datastr);
-                console.log(data);
-                console.log(data["0"]["date"]);
-                DataX=new Array();
-                var len=0;
-                for(var i in data){
-                    DataX[len++]=data[i+'']['date'];
-                }
+        function draw_charts(province,data){
+            DataX=new Array();
+            var len=0;
+            for(var i in data){
+                DataX[len++]=data[i+'']['date'];
+            }
 
-                DataY=new Array();
-                len=0;
-                for(var i in data){
-                    DataY[len++]=data[i+'']['IAQI'];
-                }
+            DataY=new Array();
+            len=0;
+            for(var i in data){
+                DataY[len++]=data[i+'']['IAQI'];
+            }
 
-                DataSO2=new Array();
-                len=0;
-                for(var i in data){
-                    DataSO2[len++]=data[i+'']['IAQI_SO2'];
-                }
+            DataSO2=new Array();
+            len=0;
+            for(var i in data){
+                DataSO2[len++]=data[i+'']['IAQI_SO2'];
+            }
 
-                DataNO2=new Array();
-                len=0;
-                for(var i in data){
-                    DataNO2[len++]=data[i+'']['IAQI_NO2'];
-                }
+            DataNO2=new Array();
+            len=0;
+            for(var i in data){
+                DataNO2[len++]=data[i+'']['IAQI_NO2'];
+            }
 
-                DataPM25=new Array();
-                len=0;
-                for(var i in data){
-                    DataPM25[len++]=data[i+'']['IAQI_PM25'];
-                }
+            DataPM25=new Array();
+            len=0;
+            for(var i in data){
+                DataPM25[len++]=data[i+'']['IAQI_PM25'];
+            }
 
-                DataPM10=new Array();
-                len=0;
-                for(var i in data){
-                    DataPM10[len++]=data[i+'']['IAQI_PM10'];
-                }
-                myChart.setOption(option = {
-                    legend: {
-                        data: [province+' AQI','IAQI_SO2','IAQI_NO2','IAQI_PM25','IAQI_PM10']
-                    },
-                    title: {
-                        text: province+' AQI',
-                        left: '1%'
-                    },
-                    tooltip: {
-                        trigger: 'axis'
-                    },
-                    grid: {
-                        left: '5%',
-                        right: '15%',
-                        bottom: '10%'
-                    },
-                    xAxis: {
-                        // data: data.map(function (item) {
-                        //     return item[0];
-                        // })
-                        data: DataX
-                    },
-                    yAxis: {},
-                    toolbox: {
-                        right: 10,
-                        feature: {
-                            dataZoom: {
-                                yAxisIndex: 'none'
-                            },
-                            restore: {},
-                            saveAsImage: {}
-                        }
-                    },
-                    dataZoom: [{
-                        startValue: '2013-01-01'
+            DataPM10=new Array();
+            len=0;
+            for(var i in data){
+                DataPM10[len++]=data[i+'']['IAQI_PM10'];
+            }
+            Charts.setOption(option = {
+                legend: {
+                    data: [province+' AQI','IAQI_SO2','IAQI_NO2','IAQI_PM25','IAQI_PM10']
+                },
+                title: {
+                    text: province+' AQI',
+                    left: '1%'
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                grid: {
+                    left: '5%',
+                    right: '15%',
+                    bottom: '10%'
+                },
+                xAxis: {
+                    // data: data.map(function (item) {
+                    //     return item[0];
+                    // })
+                    data: DataX
+                },
+                yAxis: {},
+                toolbox: {
+                    right: 10,
+                    feature: {
+                        dataZoom: {
+                            yAxisIndex: 'none'
+                        },
+                        restore: {},
+                        saveAsImage: {}
+                    }
+                },
+                dataZoom: [{
+                    startValue: '2013-01-01'
+                }, {
+                    type: 'inside'
+                }],
+                visualMap: {
+                    top: 50,
+                    right: 10,
+                    pieces: [{
+                        gt: 0,
+                        lte: 50,
+                        color: '#96c24e'
                     }, {
-                        type: 'inside'
+                        gt: 50,
+                        lte: 100,
+                        color: '#f9cb8b'
+                    }, {
+                        gt: 100,
+                        lte: 150,
+                        color: '#ff9900'
+                    }, {
+                        gt: 150,
+                        lte: 200,
+                        color: '#f04a3a'
+                    }, {
+                        gt: 200,
+                        lte: 300,
+                        color: '#ad6598'
+                    }, {
+                        gt: 300,
+                        color: '#7c1823'
                     }],
-                    visualMap: {
-                        top: 50,
-                        right: 10,
-                        pieces: [{
-                            gt: 0,
-                            lte: 50,
-                            color: '#93CE07'
+                    outOfRange: {
+                        color: '#999'
+                    }
+                },
+                series: [{
+                    name: province+' AQI',
+                    type: 'line',
+                    data: DataY,
+                    symbol: 'circle',
+                    markLine: {
+                        silent: true,
+                        lineStyle: {
+                            color: '#333'
+                        },
+                        data: [{
+                            yAxis: 50
                         }, {
-                            gt: 50,
-                            lte: 100,
-                            color: '#FBDB0F'
+                            yAxis: 100
                         }, {
-                            gt: 100,
-                            lte: 150,
-                            color: '#FC7D02'
+                            yAxis: 150
                         }, {
-                            gt: 150,
-                            lte: 200,
-                            color: '#FD0100'
+                            yAxis: 200
                         }, {
-                            gt: 200,
-                            lte: 300,
-                            color: '#AA069F'
-                        }, {
-                            gt: 300,
-                            color: '#AC3B2A'
-                        }],
-                        outOfRange: {
-                            color: '#999'
-                        }
-                    },
-                    series: [{
-                        name: province+' AQI',
-                        type: 'line',
-                        data: DataY,
-                        symbol: 'circle',
-                        markLine: {
-                            silent: true,
-                            lineStyle: {
-                                color: '#333'
-                            },
-                            data: [{
-                                yAxis: 50
-                            }, {
-                                yAxis: 100
-                            }, {
-                                yAxis: 150
-                            }, {
-                                yAxis: 200
-                            }, {
-                                yAxis: 300
-                            }]
-                        }
-                    },
-                    {
-                        name: 'IAQI_SO2',
-                        type: 'line',
-                        data: DataSO2,
-                        symbol: 'triangle',
-                    },
-                    {
-                        name: 'IAQI_NO2',
-                        type: 'line',
-                        data: DataNO2,
-                        symbol: 'rect'
-                    },
-                    {
-                        name: 'IAQI_PM25',
-                        type: 'line',
-                        data: DataPM25,
-                        symbol: 'roundRect'
-                    },
-                    {
-                        name: 'IAQI_PM10',
-                        type: 'line',
-                        data: DataPM10,
-                        symbol: 'diamond'
-                    }]
-                });
+                            yAxis: 300
+                        }]
+                    }
+                },
+                {
+                    name: 'IAQI_SO2',
+                    type: 'line',
+                    data: DataSO2,
+                    symbol: 'triangle',
+                },
+                {
+                    name: 'IAQI_NO2',
+                    type: 'line',
+                    data: DataNO2,
+                    symbol: 'rect'
+                },
+                {
+                    name: 'IAQI_PM25',
+                    type: 'line',
+                    data: DataPM25,
+                    symbol: 'roundRect'
+                },
+                {
+                    name: 'IAQI_PM10',
+                    type: 'line',
+                    data: DataPM10,
+                    symbol: 'diamond'
+                }]
             });
 
             if (option && typeof option === 'object') {
-                myChart.setOption(option);
+                Charts.setOption(option);
             }
         }
     </script>
@@ -320,162 +333,159 @@
         var app = {};
 
         var option_Bars;
-        function Draw_Bars(province){
-            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status) {
-                p=JSON.parse(datastr);
-                var data=new Array();
-                for(var i=0;i<6;++i) data[i]=new Array();
-                var len=0;
-                var last='01';
-                for(var i in p){
-                    str=p[i+'']['date'].split('-');
-                    for(var j=0;j<6;++j) data[j][len]=0;
-                    if (last!=str[1]){
-                        ++len; last=str[1];
-                    }
+        function Draw_Bars(province,p){
+            var data=new Array();
+            for(var i=0;i<6;++i) data[i]=new Array();
+            var len=0;
+            var last='01';
+            for(var i in p){
+                str=p[i+'']['date'].split('-');
+                for(var j=0;j<6;++j) data[j][len]=0;
+                if (last!=str[1]){
+                    ++len; last=str[1];
                 }
-                console.log(len);
-                len=0;
-                last='01';
-                var X=new Array();
-                X.push('2013-01');
-                for(var i in p){
-                    str=p[i+'']['date'].split('-');
-                    if (p[i+'']['IAQI']<=50) ++data[0][len];
-                    else if (p[i+'']['IAQI']<=100) ++data[1][len];
-                    else if (p[i+'']['IAQI']<=150) ++data[2][len];
-                    else if (p[i+'']['IAQI']<=200) ++data[3][len];
-                    else if (p[i+'']['IAQI']<=300) ++data[4][len];
-                    else ++data[5][len];
-                    if (last!=str[1]){
-                        X.push(str[0]+'-'+str[1]);
-                        ++len; last=str[1];
-                    }
+            }
+            console.log(len);
+            len=0;
+            last='01';
+            var X=new Array();
+            X.push('2013-01');
+            for(var i in p){
+                str=p[i+'']['date'].split('-');
+                if (p[i+'']['IAQI']<=50) ++data[0][len];
+                else if (p[i+'']['IAQI']<=100) ++data[1][len];
+                else if (p[i+'']['IAQI']<=150) ++data[2][len];
+                else if (p[i+'']['IAQI']<=200) ++data[3][len];
+                else if (p[i+'']['IAQI']<=300) ++data[4][len];
+                else ++data[5][len];
+                if (last!=str[1]){
+                    X.push(str[0]+'-'+str[1]);
+                    ++len; last=str[1];
                 }
-                console.log('data:');
-                console.log(data);
-                console.log(len);
-                option_Bars = {
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: {            // 坐标轴指示器，坐标轴触发有效
-                            type: 'shadow'        // 默认为直线，可选为：'line' | 'shadow'
-                        }
-                    },
-                    grid: {
-                        left: '3%',
-                        right: '3%',
-                        bottom: '0',
-                        top:'0',
-                        containLabel: false
-                    },
-                    xAxis: [
-                        {
-                            type: 'category',
-                            data: X
-                        }
-                    ],
-                    yAxis: [
-                        {
-                            type: 'value',
-                            show: false
-                        }
-                    ],
-                    series: [
-                        {
-                            name: '优',
-                            type: 'bar',
-                            stack: 's',
-                            emphasis: {
-                                focus: 'series'
-                            },
-                            data: data[0],
-                            itemStyle:{
-                                normal:{
-                                    color:'#93CE07'
-                                }
-                            },
+            }
+            console.log('data:');
+            console.log(data);
+            console.log(len);
+            option_Bars = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {            // 坐标轴指示器，坐标轴触发有效
+                        type: 'shadow'        // 默认为直线，可选为：'line' | 'shadow'
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '3%',
+                    bottom: '0',
+                    top:'0',
+                    containLabel: false
+                },
+                xAxis: [
+                    {
+                        type: 'category',
+                        data: X
+                    }
+                ],
+                yAxis: [
+                    {
+                        type: 'value',
+                        show: false
+                    }
+                ],
+                series: [
+                    {
+                        name: '优',
+                        type: 'bar',
+                        stack: 's',
+                        emphasis: {
+                            focus: 'series'
                         },
-                        {
-                            name: '良',
-                            type: 'bar',
-                            stack: 's',
-                            emphasis: {
-                                focus: 'series'
-                            },
-                            data: data[1],
-                            itemStyle:{
-                                normal:{
-                                    color:'#FBDB0F'
-                                }
-                            },
+                        data: data[0],
+                        itemStyle:{
+                            normal:{
+                                color:'#96c24e'
+                            }
                         },
-                        {
-                            name: '轻度污染',
-                            type: 'bar',
-                            stack: 's',
-                            emphasis: {
-                                focus: 'series'
-                            },
-                            data: data[2],
-                            itemStyle:{
-                                normal:{
-                                    color:'#FC7D02'
-                                }
-                            },
-                        }
-                        ,
-                        {
-                            name: '中度污染',
-                            type: 'bar',
-                            stack: 's',
-                            emphasis: {
-                                focus: 'series'
-                            },
-                            data: data[3],
-                            itemStyle:{
-                                normal:{
-                                    color:'#FD0100'
-                                }
-                            },
-                        }
-                        ,
-                        {
-                            name: '重度污染',
-                            type: 'bar',
-                            stack: 's',
-                            emphasis: {
-                                focus: 'series'
-                            },
-                            data: data[4],
-                            itemStyle:{
-                                normal:{
-                                    color:'#AA069F'
-                                }
-                            },
-                        }
-                        ,
-                        {
-                            name: '严重污染',
-                            type: 'bar',
-                            stack: 's',
-                            emphasis: {
-                                focus: 'series'
-                            },
-                            data: data[5],
-                            itemStyle:{
-                                normal:{
-                                    color:'#AC3B2A'
-                                }
-                            },
-                        }
-                    ]
-                };
+                    },
+                    {
+                        name: '良',
+                        type: 'bar',
+                        stack: 's',
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: data[1],
+                        itemStyle:{
+                            normal:{
+                                color:'#f9cb8b'
+                            }
+                        },
+                    },
+                    {
+                        name: '轻度污染',
+                        type: 'bar',
+                        stack: 's',
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: data[2],
+                        itemStyle:{
+                            normal:{
+                                color:'#ff9900'
+                            }
+                        },
+                    }
+                    ,
+                    {
+                        name: '中度污染',
+                        type: 'bar',
+                        stack: 's',
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: data[3],
+                        itemStyle:{
+                            normal:{
+                                color:'#f04a3a'
+                            }
+                        },
+                    }
+                    ,
+                    {
+                        name: '重度污染',
+                        type: 'bar',
+                        stack: 's',
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: data[4],
+                        itemStyle:{
+                            normal:{
+                                color:'#ad6598'
+                            }
+                        },
+                    }
+                    ,
+                    {
+                        name: '严重污染',
+                        type: 'bar',
+                        stack: 's',
+                        emphasis: {
+                            focus: 'series'
+                        },
+                        data: data[5],
+                        itemStyle:{
+                            normal:{
+                                color:'#7c1823'
+                            }
+                        },
+                    }
+                ]
+            };
 
-                if (option_Bars && typeof option_Bars === 'object') {
-                    Bars.setOption(option_Bars);
-                }
-            })
+            if (option_Bars && typeof option_Bars === 'object') {
+                Bars.setOption(option_Bars);
+            }
         }
     </script>
     <script>
@@ -483,7 +493,7 @@
             if (val<10) return '0'+val;
             else return val+'';
         }
-        function Draw_Rader(province,year,month,day){
+        function Draw_Rader(province,year,month,day,p){
             var dom = document.getElementById("Rader");
             var myChart = echarts.init(dom);
             var app = {};
@@ -496,93 +506,373 @@
                     opacity: 1
                 }
             };
-            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province+'.json', function (datastr,status){
-                if (status!='success') return;
-                var p=JSON.parse(datastr);
-                var R_data=new Array();
-                for(var i=0;i<6;++i) R_data[i]=new Array();
-                for(var i in p){
-                    if (p[i+'']['date']==year+'-'+cl(month)+'-'+cl(day)){
-                    R_data[0][0]=p[i+'']['IAQI_O3'];
-                    R_data[0][1]=p[i+'']['IAQI_PM25'];
-                    R_data[0][2]=p[i+'']['IAQI_PM10'];
-                    R_data[0][3]=p[i+'']['IAQI_CO'];
-                    R_data[0][4]=p[i+'']['IAQI_NO2'];
-                    R_data[0][5]=p[i+'']['IAQI_SO2'];
-                }} 
-                var ma=0;
-                for(var i=0;i<6;++i) ma=Math.max(ma,R_data[0][i]);
-                option = {
-                    //backgroundColor: '#161627',
-                    title: {
-                        text: '',
-                        left: 'center',
+            var R_data=new Array();
+            for(var i=0;i<6;++i) R_data[i]=new Array();
+            for(var i in p){
+                if (p[i+'']['date']==year+'-'+cl(month)+'-'+cl(day)){
+                R_data[0][0]=p[i+'']['IAQI_O3'];
+                R_data[0][1]=p[i+'']['IAQI_PM25'];
+                R_data[0][2]=p[i+'']['IAQI_PM10'];
+                R_data[0][3]=p[i+'']['IAQI_CO'];
+                R_data[0][4]=p[i+'']['IAQI_NO2'];
+                R_data[0][5]=p[i+'']['IAQI_SO2'];
+            }} 
+            var ma=0;
+            for(var i=0;i<6;++i) ma=Math.max(ma,R_data[0][i]);
+            option = {
+                //backgroundColor: '#161627',
+                title: {
+                    text: '',
+                    left: 'center',
+                    textStyle: {
+                        color: '#eee'
+                    }
+                },
+                radar: {
+                    radius:'60%',
+                    indicator: [
+                        {name: 'O3', max: ma},
+                        {name: 'PM2.5', max: ma},
+                        {name: 'PM10', max: ma},
+                        {name: 'CO', max: ma},
+                        {name: 'NO2', max: ma},
+                        {name: 'SO2', max: ma}
+                    ],
+                    shape: 'polygon',
+                    splitNumber: 5,
+                    name: {
                         textStyle: {
-                            color: '#eee'
+                            color: '#996600',
+                            fontSize: 14,
                         }
                     },
-                    radar: {
-                        indicator: [
-                            {name: 'O3', max: ma},
-                            {name: 'PM2.5', max: ma},
-                            {name: 'PM10', max: ma},
-                            {name: 'CO', max: ma},
-                            {name: 'NO2', max: ma},
-                            {name: 'SO2', max: ma}
-                        ],
-                        shape: 'polygon',
-                        splitNumber: 5,
-                        name: {
-                            textStyle: {
-                                color: '#996600',
-                                fontSize: 14,
-                            }
-                        },
-                        splitLine: {
-                            lineStyle: {
-                                color: [
-                                    'rgba(238, 197, 102, 0.1)', 'rgba(238, 197, 102, 0.2)',
-                                    'rgba(238, 197, 102, 0.4)', 'rgba(238, 197, 102, 0.6)',
-                                    'rgba(238, 197, 102, 0.8)', 'rgba(238, 197, 102, 1)'
-                                ].reverse()
-                            }
-                        },
-                        splitArea: {
-                            show: false
-                        },
-                        axisLine: {
-                            lineStyle: {
-                                color: 'rgba(238, 197, 102, 0.5)'
-                            }
+                    splitLine: {
+                        lineStyle: {
+                            color: [
+                                'rgba(238, 197, 102, 0.1)', 'rgba(238, 197, 102, 0.2)',
+                                'rgba(238, 197, 102, 0.4)', 'rgba(238, 197, 102, 0.6)',
+                                'rgba(238, 197, 102, 0.8)', 'rgba(238, 197, 102, 1)'
+                            ].reverse()
                         }
                     },
-                    series:{
-                            name: '',
-                            type: 'radar',
-                            lineStyle: lineStyle,
-                            data: R_data,
-                            symbol: 'none',
-                            itemStyle: {
-                                color: '#F9713C'
-                            },
-                            areaStyle: {
-                                opacity: 0.1
-                            }
+                    splitArea: {
+                        show: false
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: 'rgba(238, 197, 102, 0.5)'
                         }
-                };
+                    }
+                },
+                series:{
+                        name: '',
+                        type: 'radar',
+                        lineStyle: lineStyle,
+                        data: R_data,
+                        symbol: 'none',
+                        itemStyle: {
+                            color: '#F9713C'
+                        },
+                        areaStyle: {
+                            opacity: 0.1
+                        }
+                    }
+            };
 
-                if (option && typeof option === 'object') {
-                    myChart.setOption(option);
+            if (option && typeof option === 'object') {
+                myChart.setOption(option);
+            }
+        }
+    </script>
+    <script>
+        var dom_Temp = document.getElementById("Temperature");
+        var Chart_Temp = echarts.init(dom_Temp);
+        var app = {};
+
+        var option_Temp;
+
+
+        function DrawTemp(province,year,month,day,data){
+            var val=0;
+            for(var i in data){
+                if (data[i]['date']==year+'-'+cl(month)+'-'+cl(day)){
+                val=(data[i]['Temp']-273.15).toFixed(0);
+            }} 
+            var col=new Array();
+            if (val<=0) col=['#6699ff','#0039e6'];
+            else col=['#FFAB91','#FD7347'];
+            option_Temp = {
+                // grid: {
+                //     left: '20%',
+                //     right: '20%',
+                //     bottom: '20%',
+                //     top:'20%'
+                // },
+                series: [{
+                    type: 'gauge',
+                    center: ["50%", "65%"],
+                    startAngle: 200,
+                    endAngle: -20,
+                    min: -30,
+                    max: 40,
+                    splitNumber: 14,
+                    itemStyle: {
+                        color: col[0]
+                    },
+                    progress: {
+                        show: true,
+                        width: 12
+                    },
+
+                    pointer: {
+                        show: false,
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            width: 10
+                        }
+                    },
+                    axisTick: {
+                        distance: -22,
+                        splitNumber: 5,
+                        lineStyle: {
+                            width: 1.5,
+                            color: '#999'
+                        }
+                    },
+                    splitLine: {
+                        distance: -27,
+                        length: 10,
+                        lineStyle: {
+                            width: 2,
+                            color: '#999'
+                        }
+                    },
+                    axisLabel: {
+                        distance: -21,
+                        color: '#999',
+                        fontSize: 15
+                    },
+                    anchor: {
+                        show: false
+                    },
+                    title: {
+                        show: false
+                    },
+                    detail: {
+                        valueAnimation: true,
+                        width: '60%',
+                        lineHeight: 40,
+                        height: '15%',
+                        borderRadius: 8,
+                        offsetCenter: [0, '-15%'],
+                        fontSize: 40,
+                        fontWeight: 'bolder',
+                        formatter: '{value} °C',
+                        color: col[0]
+                    },
+                    data: [{
+                        value: val
+                    }]
+                },
+
+                {
+                    type: 'gauge',
+                    center: ["50%", "65%"],
+                    startAngle: 200,
+                    endAngle: -20,
+                    min: -30,
+                    max: 40,
+                    itemStyle: {
+                        color: col[1],
+                    },
+                    progress: {
+                        show: true,
+                        width: 6
+                    },
+
+                    pointer: {
+                        show: false
+                    },
+                    axisLine: {
+                        show: false
+                    },
+                    axisTick: {
+                        show: false
+                    },
+                    splitLine: {
+                        show: false
+                    },
+                    axisLabel: {
+                        show: false
+                    },
+                    detail: {
+                        show: false
+                    },
+                    data: [{
+                        value: val
+                    }]
+
                 }
-            })
+            ],
+            };
+            if (option_Temp && typeof option_Temp === 'object') {
+                Chart_Temp.setOption(option_Temp);
+            }
+
+        }
+        
+
+    </script>
+    <script>
+        var dom_Press = document.getElementById("Press");
+        var Chart_Press = echarts.init(dom_Press);
+        var app = {};
+
+        var option_Press;
+
+        function DrawPress(province,year,month,day,data){
+            var val=0;
+            for(var i in data){
+                if (data[i]['date']==year+'-'+cl(month)+'-'+cl(day)){
+                    val=(data[i]['Press']/1000).toFixed(1); break;
+                }
+            }
+            option_Press = {
+                series: [{
+                    type: 'gauge',
+                    min: 50,
+                    max: 110,
+                    splitNumber: 10,
+                    radius: '75%',
+                    center: ["50%", "60%"],
+                    startAngle: 210,
+                    endAngle: -30,
+                    axisLine: {
+                        lineStyle: {
+                            color: [
+                                [1, '#f00']
+                            ],
+                            width: 3
+                        }
+                    },
+                    splitLine: {
+                        distance: -13,
+                        length: 12,
+                        lineStyle: {
+                            color: '#f00'
+                        }
+                    },
+                    axisTick: {
+                        distance: -10,
+                        length: 8,
+                        lineStyle: {
+                            color: '#f00'
+                        }
+                    },
+                    axisLabel: {
+                        distance: -32,
+                        color: '#f00',
+                        fontSize: 15
+                    },
+                    anchor: {
+                        show: true,
+                        size: 20,
+                        itemStyle: {
+                            borderColor: '#000',
+                            borderWidth: 2
+                        }
+                    },
+                    pointer: {
+                        offsetCenter: [0, '10%'],
+                        icon: 'path://M2090.36389,615.30999 L2090.36389,615.30999 C2091.48372,615.30999 2092.40383,616.194028 2092.44859,617.312956 L2096.90698,728.755929 C2097.05155,732.369577 2094.2393,735.416212 2090.62566,735.56078 C2090.53845,735.564269 2090.45117,735.566014 2090.36389,735.566014 L2090.36389,735.566014 C2086.74736,735.566014 2083.81557,732.63423 2083.81557,729.017692 C2083.81557,728.930412 2083.81732,728.84314 2083.82081,728.755929 L2088.2792,617.312956 C2088.32396,616.194028 2089.24407,615.30999 2090.36389,615.30999 Z',
+                        length: '115%',
+                        itemStyle: {
+                            color: '#000'
+                        }
+                    },
+                    detail: {
+                        valueAnimation: true,
+                        precision: 1
+                    },
+                    title: {
+                        offsetCenter: [0, '-50%']
+                    },
+                    data: [{
+                        value: val,
+                        name: 'kPa'
+                    }]
+                },
+                {
+                    type: 'gauge',
+                    radius: '70%',
+                    center: ["50%", "60%"],
+                    startAngle: 210,
+                    endAngle: -30,
+                    min: 0,
+                    max: 60,
+                    splitNumber: 6,
+                    axisLine: {
+                        lineStyle: {
+                            color: [
+                                [1, '#000']
+                            ],
+                            width: 3
+                        }
+                    },
+                    splitLine: {
+                        distance: -3,
+                        length: 0,
+                        lineStyle: {
+                            color: '#000'
+                        }
+                    },
+                    axisTick: {
+                        distance: 0,
+                        length: 0,
+                        lineStyle: {
+                            color: '#000'
+                        }
+                    },
+                    axisLabel: {
+                        distance: 10,
+                        fontSize: 0,
+                        color: '#000'
+                    },
+                    pointer: {
+                        show: false
+                    },
+                    title: {
+                        show: false
+                    },
+                    anchor: {
+                        show: true,
+                        size: 14,
+                        itemStyle: {
+                            color: '#000'
+                        }
+                    }
+
+                }
+                ]
+            };
+
+            if (option_Press && typeof option_Press === 'object') {
+                Chart_Press.setOption(option_Press);
+            }
         }
     </script>
     <script>
         function init(){
-            draw_charts(province_now);
-            ListenDate();
-            console.log('init');
-            Draw_Bars(province_now);
+            data_now=get_data('北京市');
+            province_now='北京市';
+            $.get('https://raw.githubusercontent.com/35point5/Visualization/main/date/'+province_now+'.json', function (datastr,status) {
+                if (status!="success") return;
+                data_now=JSON.parse(datastr);
+                draw_charts(province_now,data_now);
+                Draw_Bars(province_now,data_now);
+                ListenDate();
+            });
         }
         init();
     </script>
