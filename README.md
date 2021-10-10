@@ -1,2 +1,2 @@
 # Visualization
-Open index.html to explore
+Download and open index.html to explore
